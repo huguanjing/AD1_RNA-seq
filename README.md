@@ -7,12 +7,14 @@ RNA-seq of 56 TM1 tissue samples were sequenced using Illumina Hiseq2000: leaves
 
 ## Prerequisites
 First, repare reference genome
+
     cd jfw-lab/Projects
     mkdir AD1_mapping
     cd AD1_mapping
     ln -s ~/jfw-lab/GenomicResources/archived_resources/gmapdb/AD1TM1/TM1.fasta
 
 Then get to NCBI Biobroject (http://www.ncbi.nlm.nih.gov/sra/?term=PRJNA248163/), select all 56 RNA-seq sequences to get SRR IDs.
+
     bash downloadSRR.sh
 
 ## RSEM quantification
