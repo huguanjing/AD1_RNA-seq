@@ -1,7 +1,7 @@
 Allopolyploid AD1 RNA-seq Mapping and Analysis
 ---
 ## Introduction
-The genome sequences of allopolyploid cotton species have been completed. __I would like to use the [Zhang et al.](http://www.nature.com/nbt/journal/v33/n5/full/nbt.3207.html/) G. hirsutum var. TM1 genome sequence as reference to conduct RNA-seq mapping and downstream analysis, and compare the mapping results to the strategy using diploid reference genome with SNP index.__
+The genome sequences of allopolyploid cotton species have been completed. I would like to use the [Zhang et al.](http://www.nature.com/nbt/journal/v33/n5/full/nbt.3207.html/) G. hirsutum var. TM1 genome sequence as reference to conduct RNA-seq mapping and downstream analysis, and compare the mapping results to the strategy using diploid reference genome with SNP index.
 
 RNA-seq of 56 TM1 tissue samples were sequenced using Illumina Hiseq2000: developing seeds and cotyledon from several stages, roots and stems of 2-week-old plants; petals, torus, pistils, stamens and lower sepals dissected from whole mature flowers; ovules from −3, −1, 0, 1, 3, 5, 10, 20, 25 and 35 days DPA; fibers from 5, 10, 20 and 25 DPA; true leaves of the seedlings treated with salt, PEG, heat and cold. A total of 297.3 Gb of raw RNA-seq data were generated from the 56 libraries, and deposited together with genomic sequences in [PRJNA248163](http://www.ncbi.nlm.nih.gov/sra/?term=PRJNA248163/).
 
@@ -88,12 +88,15 @@ First the log file recorded bowtie2 command and mapping results. Input option `-
     10934417 (44.48%) aligned concordantly >1 times
     49.37% overall alignment rate
 
-Only 4.89% of reads are uniquely mapped, and 44.48% are **multireads**. But 50.63% of reads not mapped to reference is QUITE high!!!!
+Only 4.89% of reads are uniquely mapped, and 44.48% are **multireads**. But 50.63% of reads not mapped to reference seems QUITE high!!!! Corresponding to the 12,136,810 (49.36%) pairs with concordant alignment, **the total read count ("SRR1695160.genes.results" column "expected_count") is 11,840,146, accounting for 48.16% of trimmed pairs, or 36.18% of all sequenced pairs.** This result is comparable to GSNAP genomic mapping results (total sequenced => passing quality check => mappable reads => countable reads), where countable reads are about 18% of all sequenced, and 27% of all mapped. Noting that N reads were discarded. 
 
-We can also use Samtools `view` to examine mapping results, but option `flagstat` counts reads mapping to multiple locations multiple times, which makes it very hard to make sense of.
+We can also use Samtools `view` to examine mapping results, but option `flagstat` counts alignments not reads, so reads mapping to multiple locations are counted multiple times, which makes it very hard to make sense of.
 
-    # count unmapped reads
-    samtools view -f4 -c SRR1695160.transcript.sorted.bam
+    samtools view -f 4 -c filename.bam	# count unmapped reads
+    samtools view -f 2 -c filename.bam	# count reads mapped in proper pair
+    samtools view -F 4 -c filename.bam | cut -f1 | sort | uniq | wc -l	# count mapped reads, after removing unmapped
+    samtools view -f 0x40 -F 0x4 filename.bam | cut -f1 | sort | uniq | wc -l #left mate
+    samtools view -f 0x80 -F 0x4 filename.bam | cut -f1 | sort | uniq  | wc -l #right mate
  
 Then let us focus on the data statistics learned by RSEM. Inside the folder "SRR1695160.stat", '.cnt' contains alignment statistics, with the format and meanings of each field described in '[cnt_file_description.txt] (https://github.com/deweylab/RSEM/blob/master/cnt_file_description.txt/)' under RSEM directory; '.model' stores RNA-Seq model parameters learned from the data, with described format in '[model_file_description.txt] (https://github.com/deweylab/RSEM/blob/master/model_file_description.txt/)' under RSEM directory.
 
@@ -110,39 +113,51 @@ In the generated figure (genes.pdf), black refers to uniquely aligned reads and 
 
 ## GSNAP with PolyDog
 
-## GSNAP with PolyCat
 Use GSNAP to conduct maping, option `-n` tells to report one best alignment only, `-N` looks for novel splicing, `-t 2` tells to use 2 threads, `-Q` output protein seq.
 
 `-m, --max-mismatches=FLOAT` defines maximum  number  of  mismatches  allowed (if not specified, then defaults to the ultrafast level of ((readlength+index_interval-1)/kmer-2)). If specified between 0.0 and 1.0, then treated as a fraction of each read length.  Otherwise, treated as an  integral  number of  mismatches  (including  indel  and  splicing  penalties) For RNA-Seq, you may need to increase this value slightly  to  align reads extending past the ends of an exon.
 
 
-    module load gsnap
+    module load gsnap/20151120
     module load samtools/1.2
     
-    gsnap -n 1 -N 1 -Q -t 2 --merge-distant-samechr -d AD1TM1 -D /home/jfw-lab-local/gmapdb/AD1TM1/AD1_TM1/ -A sam SRA/fastq_trimmed/SRR1695160_1.trimmed.fastq SRA/fastq_trimmed/SRR1695160_2.trimmed.fastq > SRA/fastq_trimmed/gsnap/SRR1695160.sam 2>> log
+    gsnap -n 1 -N 1 -Q -t 2 --merge-distant-samechr -d AD1TM1 -D /home/jfw-lab-local/gmapdb/AD1TM1/AD1_TM1/ -A sam SRA/fastq_trimmed/SRR1695160_1.trimmed.fastq SRA/fastq_trimmed/SRR1695160_2.trimmed.fastq > SRA/fastq_trimmed/gsnap/SRR1695160.TM1.sam 2>> log
+    
+    gsnap -n 1 -N 1 -Q -t 2 --merge-distant-samechr -d D5 -D /home/jfw-lab-local/gmapdb/D5 -A sam SRA/fastq_trimmed/SRR1695160_1.trimmed.fastq SRA/fastq_trimmed/SRR1695160_2.trimmed.fastq > SRA/fastq_trimmed/gsnap/SRR1695160.D5.sam 2>> log
+    
+    gsnap -n 1 -N 1 -Q -t 2 --merge-distant-samechr -d A2Li -D /home/jfw-lab-local/gmapdb/A2Li/A2_Li/A2Li -A sam SRA/fastq_trimmed/SRR1695160_1.trimmed.fastq SRA/fastq_trimmed/SRR1695160_2.trimmed.fastq > SRA/fastq_trimmed/gsnap/SRR1695160.A2.sam 2> logA2
+    
+    # count pairs with mapped reads
+    samtools view -F 4 filename.bam | cut -f1 | sort | uniq | wc -l	
+	# count concordantly mapped pairs
+	samtools view -f 2 filename.bam | cut -f1 | sort | uniq | wc -l	
 
-	samtools view -Sb SRR1695160.sam > SRR1695160.gsnap.bam
-	
-	samtools flagstat *bam
-49174198 + 0 in total (QC-passed reads + QC-failed reads)
-0 + 0 secondary
-0 + 0 supplementary
-0 + 0 duplicates
-37921323 + 0 mapped (77.12%:-nan%)
-49174198 + 0 paired in sequencing
-24589161 + 0 read1
-24585037 + 0 read2
-36745117 + 0 properly paired (74.72%:-nan%)
-37164969 + 0 with itself and mate mapped
-756354 + 0 singletons (1.54%:-nan%)
-422119 + 0 with mate mapped to a different chr
-422119 + 0 with mate mapped to a different chr (mapQ>=5)
+    # convert sam to bam, sort and index for PolyCat/PolyDog
+	samtools view -Sb SRR1695160.A2.sam > SRR1695160.A2.bam
+	samtools sort -n SRR1695160.A2.bam SRR1695160.A2.sort
+	samtools index SRR1695160.A2.sort.bam
 
+Clearly, approximately 5% more TM1 reads can be mapped to A2 and D5 genomes than the TM1 genome, which makes TM1 the less favorable reference genome. To ob 
+
+Genome                  |      TM1	      |       A2        |      D5
+------------------------|-----------------|-----------------|---------------:
+pair with alignment     |19334995 (78.65%)|22254614 (90.52%)|22307621(90.74%)
+pair mapped concordantly|18370740 (74.73%)|20138464 (81.92%)|20175471(82.07%)
 	
 	
-	samtools sort $j.bam $j.sort
-	samtools index $j.sort.bam
+    module load bambam/1.3
+	polyDog -o test -A /home/jfw-lab-local/gmapdb/A2Li/A2genome_13.fasta -B /home/jfw-lab-local/gmapdb/D5/Dgenome2_13.fasta SRR1695160.A2.sort.bam SRR1695160.D5.sort.bam
 	
+I cannot get polyDog work, got error message:
+    polyDog: src/polyDog.cpp:199: int main(int, char**): Assertion `!pair || aln2f.Name == aln2r.Name' failed.
+    Aborted
+
+
+## Homoeolog read partition: GSNAP with PolyCat v.s. RSEM
+A fair comparison between these two requires the same reference genome or transcriptome to be used. For TM1 RNA-seq reads, GSNAP mapping can be conducted againest D5 reference with snp index 4.1; while RSEM can quantify homoeolog reads based on read alignment against a psuedo-AD1 transcriptome constructed from D5 genome and snp index 4.0.
+
+
+
 	counter -g Dgenome2_13.gene.gff *fiber.sort.bam > fiber.total.count.GH040716.txt
 		
                 # polycat is not necessary for diploids, below command for AD1
@@ -151,4 +166,5 @@ Use GSNAP to conduct maping, option `-n` tells to report one best alignment only
 Use samtoo
     samtools flagstat SRR1695160.genome.bam
 
-# 3	seeds from 0, 5, and 10 h
+
+
