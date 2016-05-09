@@ -142,12 +142,12 @@ Genome                  |      TM1	      |       A2        |      D5
 ------------------------|-----------------|-----------------|---------------:
 pair with alignment     |19334995 (78.65%)|22254614 (90.52%)|22307621(90.74%)
 pair mapped concordantly|18370740 (74.73%)|20138464 (81.92%)|20175471(82.07%)
-	
-	
+
     module load bambam/1.3
-	polyDog -o test -A /home/jfw-lab-local/gmapdb/A2Li/A2genome_13.fasta -B /home/jfw-lab-local/gmapdb/D5/Dgenome2_13.fasta SRR1695160.A2.sort.bam SRR1695160.D5.sort.bam
+    polyDog -o test -A /home/jfw-lab-local/gmapdb/A2Li/A2genome_13.fasta -B /home/jfw-lab-local/gmapdb/D5/Dgenome2_13.fasta SRR1695160.A2.sort.bam SRR1695160.D5.sort.bam
 	
 I cannot get polyDog work, got error message:
+
     polyDog: src/polyDog.cpp:199: int main(int, char**): Assertion `!pair || aln2f.Name == aln2r.Name' failed.
     Aborted
 
