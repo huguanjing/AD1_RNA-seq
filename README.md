@@ -88,7 +88,7 @@ First the log file recorded bowtie2 command and mapping results. Input option `-
     10934417 (44.48%) aligned concordantly >1 times
     49.37% overall alignment rate
 
-Only 4.89% of reads are uniquely mapped, and 44.48% are **multireads**. But 50.63% of reads not mapped to reference seems QUITE high!!!! Corresponding to the 12,136,810 (49.36%) pairs with concordant alignment, **the total read count ("SRR1695160.genes.results" column "expected_count") is 11,840,146, accounting for 48.16% of trimmed pairs, or 36.18% of all sequenced pairs.** This result is comparable to GSNAP genomic mapping results (total sequenced => passing quality check => mappable reads => countable reads), where countable reads are about 18% of all sequenced, and 27% of all mapped. Noting that N reads were discarded. 
+Only 4.89% of reads are uniquely mapped, and 44.48% are **multireads**. But 50.63% of reads not mapped to reference seems QUITE high!!!! Corresponding to the 12,136,810 (49.36%) pairs with concordant alignment, **the total read count ("SRR1695160.genes.results" column "expected_count") is 11,840,146, accounting for 48.16% of trimmed pairs, or 36.18% of all sequenced pairs.** This result is comparable to GSNAP genomic mapping results (total sequenced => passing quality check => mappable reads => countable reads), where countable reads are about 18% of all sequenced, and 27% of all mapped.  Note that multireads were discarded by counter or HTSeq.
 
 We can also use Samtools `view` to examine mapping results, but option `flagstat` counts alignments not reads, so reads mapping to multiple locations are counted multiple times, which makes it very hard to make sense of.
 
@@ -106,7 +106,7 @@ Command rsem-plot-model can also plots the model statistics RSEM learned from th
 
 ### Visualize aligments
 I got tens sets of A2-D5-TM1.At-TM1.Dt ortholog groups from Justin, listed in "gene_ids.txt"), which can be used to examine the alignment results and quantification.
-    
+
     rsem-plot-transcript-wiggles --show-unique SRR1695160 gene_ids.txt genes.pdf
 
 In the generated figure (genes.pdf), black refers to uniquely aligned reads and red refers to the expected depth from multi-mapping reads. Everything is red as multireads, and the pair of homoeolog genes appear to share almost same sets of mapped reads, so I assume RSEM assign reads counts based on mapping quality.
@@ -116,7 +116,6 @@ In the generated figure (genes.pdf), black refers to uniquely aligned reads and 
 Use GSNAP to conduct maping, option `-n` tells to report one best alignment only, `-N` looks for novel splicing, `-t 2` tells to use 2 threads, `-Q` output protein seq.
 
 `-m, --max-mismatches=FLOAT` defines maximum  number  of  mismatches  allowed (if not specified, then defaults to the ultrafast level of ((readlength+index_interval-1)/kmer-2)). If specified between 0.0 and 1.0, then treated as a fraction of each read length.  Otherwise, treated as an  integral  number of  mismatches  (including  indel  and  splicing  penalties) For RNA-Seq, you may need to increase this value slightly  to  align reads extending past the ends of an exon.
-
 
     module load gsnap/20151120
     module load samtools/1.2
@@ -128,14 +127,14 @@ Use GSNAP to conduct maping, option `-n` tells to report one best alignment only
     gsnap -n 1 -N 1 -Q -t 2 --merge-distant-samechr -d A2Li -D /home/jfw-lab-local/gmapdb/A2Li/A2_Li/A2Li -A sam SRA/fastq_trimmed/SRR1695160_1.trimmed.fastq SRA/fastq_trimmed/SRR1695160_2.trimmed.fastq > SRA/fastq_trimmed/gsnap/SRR1695160.A2.sam 2> logA2
     
     # count pairs with mapped reads
-    samtools view -F 4 filename.bam | cut -f1 | sort | uniq | wc -l	
-	# count concordantly mapped pairs
-	samtools view -f 2 filename.bam | cut -f1 | sort | uniq | wc -l	
-
+    samtools view -F 4 filename.bam | cut -f1 | sort | uniq | wc -l
+    # count concordantly mapped pairs
+    samtools view -f 2 filename.bam | cut -f1 | sort | uniq | wc -l
+    
     # convert sam to bam, sort and index for PolyCat/PolyDog
-	samtools view -Sb SRR1695160.A2.sam > SRR1695160.A2.bam
-	samtools sort -n SRR1695160.A2.bam SRR1695160.A2.sort
-	samtools index SRR1695160.A2.sort.bam
+    samtools view -Sb SRR1695160.A2.sam > SRR1695160.A2.bam
+    samtools sort -n SRR1695160.A2.bam SRR1695160.A2.sort
+    samtools index SRR1695160.A2.sort.bam
 
 Clearly, approximately 5% more TM1 reads can be mapped to A2 and D5 genomes than the TM1 genome, which makes TM1 the less favorable reference genome. To ob 
 
