@@ -150,11 +150,90 @@ I cannot get polyDog work, got error message:
 
     polyDog: src/polyDog.cpp:199: int main(int, char**): Assertion `!pair || aln2f.Name == aln2r.Name' failed.
     Aborted
+    
+Log into [babycrunch.las.iastate.edu] and try the bambam/1.4
+module
+    ln -s /net/my.files.iastate.edu/ifs/isu/las/research/jfw-lab
+    cd jfw-lab/Projects/AD1_mapping/SRA/fastq_trimmed/gsnap/
+    
+    module load bambam/1.4
+    # On biocrunch, 
+    polyDog -o test -A A2genome_13.fasta -B Dgenome2_13.fasta SRR1695160.A2.sort.bam SRR1695160.D5.sort.bam
 
 
 ## Homoeolog read partition: GSNAP with PolyCat v.s. RSEM
-A fair comparison between these two requires the same reference genome or transcriptome to be used. For TM1 RNA-seq reads, GSNAP mapping can be conducted againest D5 reference with snp index 4.1; while RSEM can quantify homoeolog reads based on read alignment against a psuedo-AD1 transcriptome constructed from D5 genome and snp index 4.0.
+A fair comparison between these two requires the same reference genome or transcriptome to be used. For TM1 RNA-seq reads, GSNAP mapping can be conducted againest D5 reference with snp index 4.1; while RSEM can quantify homoeolog reads based on read alignment against a psuedo-AD1 transcriptome constructed from D5 genome and snp index 4.1. 
 
+### Prepare psuedo-transcriptomes
+First, pseudogenomes of A2, AD1 At and Dt can be constructed using `pseudogenome_by_snp.py`.
+         
+    cd /jfw-lab/GenomicResources/pseudogenomes
+    python pseudogenome_by_snp.py /home/jfw-lab-local/gmapdb/D5/Dgenome2_13.fasta /home/jfw-lab-local/gmapdb/D5/snpindex4.0/D13.snp4.0 pseudo4.0
+    python pseudogenome_by_snp.py /home/jfw-lab-local/gmapdb/D5/Dgenome2_13.fasta /home/jfw-lab-local/gmapdb/D5/snpindex4.1/D13.snp4.1 pseudo4.1
+    
+And reversely, `get_snps_from_genomes.py` generate SNP index from the two resulted fasta files.
+
+    python get_snps_from_genomes.py pseudo4.0.A.fasta pseudo4.0.D.fasta snp40
+    python get_snps_from_genomes.py pseudo4.1.A.fasta pseudo4.1.D.fasta snp41
+    
+Then it doesn't hurt to compare re-constructed snp index to the original one.
+
+    diff snp40 /home/jfw-lab-local/gmapdb/D5/snpindex4.0/D13.snp4.0
+    diff snp41 /home/jfw-lab-local/gmapdb/D5/snpindex4.1/D13.snp4.1
+
+Next, the subgenomes need to be combined for build transcriptome references.
+
+    # combine subgenomes
+    cat pseudo4.0.A.fasta pseudo4.0.D.fasta > A2D5.fasta
+    cat pseudo4.1.A.fasta pseudo4.1.D.fasta > AtDt.fasta
+    
+    # convert gff3 to gtf
+    module load cufflinks/2.2.1
+    ln ~/jfw-lab/Projects/Eflen/eflen_recheck/D5.gff
+    gffread D5.gff -T -o D5.gtf
+    
+    # append subgenome tag to Chrs and Gorai IDs
+    sed "s/-JGI_221_v2.1/.A/g" D5.gtf | sed 's/\tphy/_A\tphy/' | grep "[.]1[.]A" >At.gtf
+    sed "s/-JGI_221_v2.1/.D/g" D5.gtf | sed 's/\tphy/_D\tphy/' | grep "[.]1[.]D" >Dt.gtf
+    cat At.gtf Dt.gtf > pseudoAD.gtf
+    
+    # check to make sure there are the right number (37223 x 2) genes on chromosomes for unnamed
+    sed '/Gorai[.]N/d' pseudoAD.gtf | cut -f9 | sort | uniq |wc -l
+
+    # built transcript reference from genome
+    module load rsem/1.2.22
+    module load bowtie2/2.2.6
+    rsem-prepare-reference --gtf pseudoAD.gtf --bowtie2 A2D5.fasta A2D5
+    rsem-prepare-reference --gtf pseudoAD.gtf --bowtie2 AtDt.fasta AtDt
+    time
+    
+    
+
+1. RSEM against AD1 psuedo-transcriptome using bowtie2. 
+
+module load bowtie2/2.2.6
+    module load rsem/1.2.22
+    module load samtools/1.2
+    
+    # convert gff3 to gtf
+    gffread Gossypium_hirsutum_v1.1.gene.gff3 -T -o TM1.gtf
+    
+    # built transcript reference from genome
+    rsem-prepare-reference --gtf TM1.gtf --bowtie2 TM1.fasta TM1
+    
+    # estimate gene and isoform expression from RNA-seq data
+    ## rsem-calculate-expression [options] upstream_read_file(s) reference_name sample_name
+    ## rsem-calculate-expression [options] --paired-end upstream_read_file(s) downstream_read_file(s) reference_name sample_name 
+    ## rsem-calculate-expression [options] --alignments [--paired-end] input reference_name sample_name
+    rsem-calculate-expression -p 2 --paired-end --output-genome-bam --bowtie2 --time SRA/fastq_trimmed/SRR1695160_1.trimmed.fastq SRA/fastq_trimmed/SRR1695160_2.trimmed.fastq TM1 SRA/fastq_trimmed/rsem/SRR1695160  > SRA/fastq_trimmed/rsem/SRR1695160.log 2>&1\
+    
+2. jhlk
+    
+    
+    
+    
+    
+    
 
 
 	counter -g Dgenome2_13.gene.gff *fiber.sort.bam > fiber.total.count.GH040716.txt
