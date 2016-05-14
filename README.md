@@ -11,6 +11,14 @@ A note from Udall lab (Page et al., 2016 in press) is highly relevant:
 
 "We also mapped reads to the tetraploid TM-1 reference sequence [20]. The numbers of mapped and categorized reads were less than those obtained with PolyDog using the diploid reference sequences. In addition, a significant percentage of the tetraploid sequence was unanchored to either an AT- or DT-genome. Unanchored scaffolds could be due to either partial assembly or mis-assembly. Thus, further analyses did not use the tetraploid sequence as a genome reference (S1 Table). Eventually, additional improvement of the reference tetraploid sequences may provide better rates of read mapping than PolyDog, but **PolyDog is currently the most thorough method of mapping polyploid reads in cotton**."
 
+
+## Conclusions
+1. Both A2 and D5 genomes provide better mapping results than TM1 genome (Zhang et al.) for polyploid RNA-seq reads
+2. For extracting read counts from mapping results, especially for paired-end reads, counter (bambam) always counts as signle-ends (and without quality filter?), while HTSeq-count counts alignment pair (concerdant or only one mate mapped) as 1.
+3. GSNAP performs quality filtering, and all paired and solo alignment after filtering are accecpted for mapping; using gsnap -n 1 followed by htseq-count should reach maximum RNA-seq usage (countable_readsout of sequencer_raw_output).
+4. In order to test the use of RSEM, I will use seed transcriptiom of A2, D5 and the in silico synthetic ADs to check the parition of At and Dt reads in 'seed_eflen_RSEM.md'.
+
+
 ## Prerequisites
 First, repare reference genome.
 
@@ -111,7 +119,7 @@ I got tens sets of A2-D5-TM1.At-TM1.Dt ortholog groups from Justin, listed in "g
 
 In the generated figure (genes.pdf), black refers to uniquely aligned reads and red refers to the expected depth from multi-mapping reads. Everything is red as multireads, and the pair of homoeolog genes appear to share almost same sets of mapped reads, so I assume RSEM assign reads counts based on mapping quality.
 
-## GSNAP with PolyDog
+## GSNAP with PolyDog (failed)
 
 Use GSNAP to conduct maping, option `-n` tells to report one best alignment only, `-N` looks for novel splicing, `-t 2` tells to use 2 threads, `-Q` output protein seq.
 
@@ -124,7 +132,7 @@ Use GSNAP to conduct maping, option `-n` tells to report one best alignment only
     
     gsnap -n 1 -N 1 -Q -t 2 --merge-distant-samechr -d D5 -D /home/jfw-lab-local/gmapdb/D5 -A sam SRA/fastq_trimmed/SRR1695160_1.trimmed.fastq SRA/fastq_trimmed/SRR1695160_2.trimmed.fastq > SRA/fastq_trimmed/gsnap/SRR1695160.D5.sam 2>> log
     
-    gsnap -n 1 -N 1 -Q -t 2 --merge-distant-samechr -d A2Li -D /home/jfw-lab-local/gmapdb/A2Li/A2_Li/A2Li -A sam SRA/fastq_trimmed/SRR1695160_1.trimmed.fastq SRA/fastq_trimmed/SRR1695160_2.trimmed.fastq > SRA/fastq_trimmed/gsnap/SRR1695160.A2.sam 2> logA2
+    gsnap -n 1 -N 1 -Q -t 2 --merge-distant-samechr -d A2Li -D /home/jfw-lab-local/gmapdb/A2Li/A2_Li/A2Li -A sam SRA/fastq_trimmed/SRR1695160_1.trimmed.fastq SRA/fastq_trimmed/SRR1695160_2.trimmed.fastq > SRA/fastq_trimmed/gsnap/SRR1695160.A2.sam 2>> log
     
     # count pairs with mapped reads
     samtools view -F 4 filename.bam | cut -f1 | sort | uniq | wc -l
@@ -133,15 +141,37 @@ Use GSNAP to conduct maping, option `-n` tells to report one best alignment only
     
     # convert sam to bam, sort and index for PolyCat/PolyDog
     samtools view -Sb SRR1695160.A2.sam > SRR1695160.A2.bam
-    samtools sort -n SRR1695160.A2.bam SRR1695160.A2.sort
+    samtools sort -n SRR1695160.A2.bam SRR1695160.A2.nsort
+    
+    # check counter read table
+    samtools sort SRR1695160.A2.bam SRR1695160.A2.sort
     samtools index SRR1695160.A2.sort.bam
+    module load bambam/1.3
+    counter -g /home/jfw-lab-local/gmapdb/A2Li/A2Li.exons.gff SRR1695160.A2.sort.bam > counter.A2.txt
+    counter -g ~/jfw-lab/Projects/Eflen/eflen_recheck/D5.13chrs.exon_unnamed.gff SRR1695160.D5.sort.bam > counter.D5.txt
+    counter -g ~/jfw-lab/Projects/AD1_mapping/Gossypium_hirsutum_v1.1.exon.gff3 SRR1695160.TM1.sort.bam > counter.TM1.txt
 
-Clearly, approximately 5% more TM1 reads can be mapped to A2 and D5 genomes than the TM1 genome, which makes TM1 the less favorable reference genome. To ob 
+    # check HTSeq read table
+    module load python
+    htseq-count -f bam --stranded=no -r pos SRR1695160.D5.sort.bam ~/jfw-lab/GenomicResources/pseudogenomes/D5.primaryOnly.gtf > htseq.D5.txt
+    tail htseq.D5.txt
+    # Among 24,589,150 SAM alignment pairs processed.
+    # __no_feature    1,948,227(7.92%) ===== reads not assigned to any feature, aka those mapped to non-genic regions here
+    # __ambiguous       416,480(1.69%) ===== assigned to more than one feature, probably reads assigned to region with multiple (anti-sense?) annotation 
+    # __too_low_aQual 1,930,408(7.85%) ===== skip all reads with alignment quality lower than the given minimum value, default: 10
+    # __not_aligned   2,276,510(9.26%) ===== in the SAM file without alignment
+    # __alignment_not_unique  35,698 (0.15%) ==== reads (or read pairs) with more than one reported alignment, recognized from the NH optional SAM field tag. maybe the pair mapped to different chromosome??
+    # The rest of counts assigned to genes sum up to 17,981,827 accounting for 73.13% of trimmed pairs.
 
-Genome                  |      TM1	      |       A2        |      D5
-------------------------|-----------------|-----------------|---------------:
-pair with alignment     |19334995 (78.65%)|22254614 (90.52%)|22307621(90.74%)
-pair mapped concordantly|18370740 (74.73%)|20138464 (81.92%)|20175471(82.07%)
+
+Clearly, approximately 5% more TM1 reads can be mapped to A2 and D5 genomes than the TM1 genome, which makes TM1 the less favorable reference genome. **Note that Counter doesn't work for PE reads.** For some reasons, counter command failed for A2, and D5 counter result is weird, resulted total read count bigger than total mapped alignment according to samtools flagstat.
+
+Genome                     |      TM1	     |       A2        |      D5
+---------------------------|-----------------|-----------------|---------------:
+pair with alignment        |19334995 (78.65%)|22254614 (90.52%)|22307621(90.74%)
+pair mapped concordantly   |18370740 (74.73%)|20138464 (81.92%)|20175471(82.07%)
+Counter total reads (SE)   |33823921 (68.79%)|    error        |46808845(95.20%)
+HTSeq total reads (PE)     |        NA       |       NA        |17981827(73.13%)
 
     module load bambam/1.3
     polyDog -o test -A /home/jfw-lab-local/gmapdb/A2Li/A2genome_13.fasta -B /home/jfw-lab-local/gmapdb/D5/Dgenome2_13.fasta SRR1695160.A2.sort.bam SRR1695160.D5.sort.bam
@@ -205,44 +235,30 @@ Next, the subgenomes need to be combined for build transcriptome references.
     module load bowtie2/2.2.6
     rsem-prepare-reference --gtf pseudoAD.gtf --bowtie2 A2D5.fasta A2D5
     rsem-prepare-reference --gtf pseudoAD.gtf --bowtie2 AtDt.fasta AtDt
-    time
-    
+
     
 
-1. RSEM against AD1 psuedo-transcriptome using bowtie2. 
+### RSEM against A2D5 and AtDt psuedo-transcriptome using bowtie2. 
 
-module load bowtie2/2.2.6
+    module load bowtie2/2.2.6
     module load rsem/1.2.22
     module load samtools/1.2
     
-    # convert gff3 to gtf
-    gffread Gossypium_hirsutum_v1.1.gene.gff3 -T -o TM1.gtf
     
-    # built transcript reference from genome
-    rsem-prepare-reference --gtf TM1.gtf --bowtie2 TM1.fasta TM1
-    
-    # estimate gene and isoform expression from RNA-seq data
-    ## rsem-calculate-expression [options] upstream_read_file(s) reference_name sample_name
-    ## rsem-calculate-expression [options] --paired-end upstream_read_file(s) downstream_read_file(s) reference_name sample_name 
-    ## rsem-calculate-expression [options] --alignments [--paired-end] input reference_name sample_name
-    rsem-calculate-expression -p 2 --paired-end --output-genome-bam --bowtie2 --time SRA/fastq_trimmed/SRR1695160_1.trimmed.fastq SRA/fastq_trimmed/SRR1695160_2.trimmed.fastq TM1 SRA/fastq_trimmed/rsem/SRR1695160  > SRA/fastq_trimmed/rsem/SRR1695160.log 2>&1\
-    
-2. jhlk
-    
-    
-    
-    
-    
-    
+    mkdir ~/jfw-lab/Projects/AD1_mapping/SRA/fastq_trimmed/rsem/pseudo
+    cd ~/jfw-lab/Projects/AD1_mapping/
+    rsem-calculate-expression -p 2 --paired-end --output-genome-bam --bowtie2 --time SRA/fastq_trimmed/SRR1695160_1.trimmed.fastq SRA/fastq_trimmed/SRR1695160_2.trimmed.fastq ~/jfw-lab/GenomicResources/pseudogenomes/A2D5 SRA/fastq_trimmed/rsem/pseudo/SRR1695160.A2D5  > SRA/fastq_trimmed/rsem/pseudo/SRR1695160.A2D5.log 2>&1
 
 
-	counter -g Dgenome2_13.gene.gff *fiber.sort.bam > fiber.total.count.GH040716.txt
-		
-                # polycat is not necessary for diploids, below command for AD1
-                echo ''
-		polyCat -x 1 -p 1 -s /home/jfw-lab/gmapdb/D5/snpindex4.1/D13.snp4.1  $j.sort.bam
-Use samtoo
-    samtools flagstat SRR1695160.genome.bam
+Together with previous RSEM mapping results for SRR1695160 (raw 32,728,693 spots, and after trimming, 24,584,115 pairs and 8,023,391 singltons were left), approximately 10% more TM1 reads can be mapped to psuedotranscriptome based on D5 reference and SNP index than that of TM1, consistent with GSNAP mappping results
 
+Transcriptome           |      TM1	  |     A2D5        |      AtDt
+------------------------|-----------------|-----------------|---------------:
+pair mapped concordantly|12136810 (49.36%)|15151380 (61.63%)|15161659(61.67%)
+RSEM total read count   |11840146 (48.16%)|14771572 (60.09%)|14781099(60.12%)   
+    
+    
+    
+### RSEM against A2D5 and AtDt psuedo-transcriptome using GSNAP.
 
 
