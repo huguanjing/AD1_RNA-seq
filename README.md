@@ -15,7 +15,7 @@ A note from Udall lab (Page et al., 2016 in press) is highly relevant:
 ## Conclusions
 1. Both A2 and D5 genomes provide better mapping results than TM1 genome (Zhang et al.) for polyploid RNA-seq reads
 2. For extracting read counts from mapping results, especially for paired-end reads, counter (bambam) always counts as signle-ends (and without quality filter?), while HTSeq-count counts alignment pair (concerdant or only one mate mapped) as 1.
-3. GSNAP performs quality filtering, and all paired and solo alignment after filtering are accecpted for mapping; using gsnap -n 1 followed by htseq-count should reach maximum RNA-seq usage (countable_readsout of sequencer_raw_output).
+3. GSNAP performs quality filtering, and all paired and solo alignment after filtering are accecpted for mapping; using gsnap -n 1 followed by htseq-count should reach maximum RNA-seq usage (number of countable reads out of sequencer raw output).
 4. In order to test the use of RSEM, I will use seed transcriptiom of A2, D5 and the in silico synthetic ADs to check the parition of At and Dt reads in [seed_eflen_RSEM.md](https://github.com/huguanjing/AD1_RNA-seq/blob/master/seed_eflen_RSEM.md/).
 
 
