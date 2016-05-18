@@ -184,9 +184,10 @@ Compare EBSeq and DEseq2 results.
     # At.30vsDt.30      12269      9285     8562
     # At.40vsDt.40       5446      4310     2885
 
-At 10 and 30 dpa, EBSeq detected fewer DEs than DESeq2, and the overlaps make a much bigger proportion, which suggests that EBSeq is more stringent. But 20 and 40 dpa results are hard to make comparisons, with ~50% overlap for both.
-----------------------------
+**At 10 and 30 dpa, EBSeq detected fewer DEs than DESeq2, and the overlaps make a much bigger proportion, which suggests that EBSeq is more stringent. But 20 and 40 dpa results are hard to make comparisons, with ~50% overlap for both.**
+
 Compare A2vsD5 v.s. AtvsDt and in DEseq2 and ebseq each 
+
     comp <- c(10,20,30,40)
     results <-data.frame(A2D5.sig=NA, ADs.sig=NA, both.sig =NA, both.not.sig=NA)
     pdf("TruevsExpected.pdf")
