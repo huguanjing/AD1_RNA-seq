@@ -149,6 +149,7 @@ Because RSEM output expected_count is not integer, the counts need to be rounded
     apply(batch,1,function(x) pairwiseDE.deseq2(dds,x,savePath = ""))
 
 Compare EBSeq and DEseq2 results.
+
     fileL<-list.files("DE/")
     fileL.ebseq <- paste0("DE/", grep("ebseq",fileL, value=TRUE) )
     fileL.deseq2 <-paste0("DE/", grep("deseq2",fileL, value=TRUE) )
