@@ -334,7 +334,9 @@ Run EBseq and DESeq2 and make comparisons as above
     # At.40vsDt.40       5446      4310     2885
 
 
-Regardless of using RSEM or polycat, DEseq2 shows slightly higher sensitivity, while EBSeq shows much higher specificity. **More importantly, RSEM and polyCat results are quite consistent**
+Regardless of using RSEM or polycat, DEseq2 shows slightly higher sensitivity, while EBSeq shows much higher specificity. 
+
+**More importantly, RSEM and polyCat results are quite consistent with respect to homoeolog assignment sensitivity/specificity and homoeolog differential expression results (75-88% overlap). **
 
 **RSEM**      |A2D5.sig|ADs.sig|both.sig|both.not.sig|sensitivity|specificity 
 --------------|--------|-------|--------|------------|-----------|-----------|:
@@ -358,3 +360,45 @@ deseq2.30dpa  | 13333  | 12129 | 11663  |    16024   | 0.8747469 |  0.6707409
 ebseq.40dpa   |  4651  |  4166 |  3665  |    25482   | 0.7880026 |  0.7823284
 deseq2.40dpa  |  6300  |  5345 |  5047  |    21045   | 0.8011111 |  0.6805614
 ------------------------------------------------------------------
+
+Direct comparison of AtvsDt DEs from RSEM and polycat. 
+    setwd("~/jfw-lab/Projects/Eflen/seed_for_eflen_paper/")
+    comp <- c(10,20,30,40)
+    results <-data.frame(rsem.sig=NA, polycat.sig=NA, both.sig =NA, both.not.sig=NA)
+    pdf("RSEMvsPolycat.pdf")
+    par(mfrow=c(2,2))
+    for( i in comp)
+    {
+        # rsem results
+        rsem.ebseq   <- read.table(file=paste0('rsemTests/DE/', grep('ebseq.At',grep(i,list.files("rsemTests/DE"),  value=TRUE),value=TRUE)), header=TRUE)
+        rsem.deseq2  <- read.table(file=paste0('rsemTests/DE/', grep('deseq2.At',grep(i,list.files("rsemTests/DE"), value=TRUE),value=TRUE)), header=TRUE)
+        #polycat results
+        polycat.ebseq   <- read.table(file=paste0('polycatTests/DE/', grep('ebseq.At',grep(i,list.files("polycatTests/DE"),  value=TRUE),value=TRUE)), header=TRUE)
+        polycat.deseq2  <- read.table(file=paste0('polycatTests/DE/', grep('deseq2.At',grep(i,list.files("polycatTests/DE"), value=TRUE),value=TRUE)), header=TRUE)
+        
+        # write result table
+        results[paste0("ebseq.",i,"dpa"),]   <- c(table(rsem.ebseq$Status == "DE")["TRUE"], table(polycat.ebseq$Status == "DE")["TRUE"], table(rsem.ebseq$Status == "DE" & polycat.ebseq$Status == "DE")["TRUE"], table(polycat.ebseq$Status == "EE" & rsem.ebseq$Status == "EE")["TRUE"] )
+        results[paste0("deseq2.",i,"dpa"),]  <- c(table(rsem.deseq2$padj < 0.05)["TRUE"], table(polycat.deseq2$padj < 0.05)["TRUE"], table(polycat.deseq2$padj < 0.05 & rsem.deseq2$padj < 0.05)["TRUE"], table(rsem.deseq2$padj >= 0.05 & polycat.deseq2$padj >= 0.05)["TRUE"])
+
+
+        colors <- rep(addTrans("grey",10), length(row.names(rsem.ebseq)))
+        # color DE genes: both - red, polycat - blue, rsem-green, esle=grey
+        colors[polycat.ebseq$Status == "DE" ] <- addTrans("blue",10)
+        colors[rsem.ebseq$Status == "DE" ] <- addTrans("green",10)
+        colors[polycat.ebseq$Status == "DE"  & rsem.ebseq$Status == "DE" ] <- addTrans("red",10)
+        plot(log2(polycat.ebseq$PostFC), log2(rsem.ebseq$PostFC), type="p", pch=16, col=colors, main=paste0("AtvsDt: ebseq.",i,"dpa"))
+        legend("bottomright", inset=.05, title="signicant DE", c("polycat","rsem","both"), fill=c("blue","green","red") )
+        
+                    
+        colors <- rep(addTrans("grey",10), length(row.names(rsem.deseq2)))
+        # color DE genes: both - red, polycat - blue, rsem-green, esle=grey
+        colors[polycat.deseq2$padj  < 0.05 ] <- addTrans("blue",10)
+        colors[rsem.deseq2$padj < 0.05 ] <- addTrans("green",10)
+        colors[polycat.deseq2$padj < 0.05  & rsem.deseq2$padj  < 0.05 ] <- addTrans("red",10)
+        plot(polycat.deseq2$log2FoldChange , rsem.deseq2$log2FoldChange, type="p", pch=16, col=colors, main=paste0("AtvsDt: deseq2.",i,"dpa"))
+        legend("bottomright", inset=.05, title="signicant DE", c("polycat","rsem","both"), fill=c("blue","green","red") )
+    }
+    dev.off()
+    print(results)
+    write.table(results,file="DEcomparisons.txt",sep="\t", row.names=TRUE)
+
