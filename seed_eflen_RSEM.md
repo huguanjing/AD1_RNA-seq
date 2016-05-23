@@ -361,7 +361,8 @@ ebseq.40dpa   |  4651  |  4166 |  3665  |    25482   | 0.7880026 |  0.7823284
 deseq2.40dpa  |  6300  |  5345 |  5047  |    21045   | 0.8011111 |  0.6805614
 ------------------------------------------------------------------
 
-Direct comparison of AtvsDt DEs from RSEM and polycat. 
+Direct comparison of AtvsDt DEs from RSEM and polycat.
+
     setwd("~/jfw-lab/Projects/Eflen/seed_for_eflen_paper/")
     comp <- c(10,20,30,40)
     results <-data.frame(rsem.sig=NA, polycat.sig=NA, both.sig =NA, both.not.sig=NA)
